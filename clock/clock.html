@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clock</title>
+<style>
+:root{
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    --borders: black;
+    --dial: lightgreen;
+    --hour-hand: black;
+    --minute-arm: black;
+    --seconds-arm: red;
+}
+body{
+    box-sizing: inherit;
+    padding: 0;
+    margin: 0;
+}
+ .container{
+    width: 100vw;
+    height: 100vh;
+    display: grid;
+    place-items: center;
+    background-color: cornflowerblue;
+ }
+ .container-clock{
+    width: 75vmin;
+    height: 75vmin;
+    background: lightcoral;
+    position: relative;
+    resize: both;
+
+ }
+ .clock-frame{
+    box-sizing: border-box;
+    background-color: lightgreen;
+    border-radius: 50%;
+    border: var(--borders) 2px solid;
+    height: 100%;
+    width: 100%;
+
+    background: var(--dial) 
+                linear-gradient(to bottom, rgba(255, 255, 255, 0) calc(50% - 1px), var(--borders) calc(50%), rgba(255, 255, 255, 0) calc(50% + 1px));
+                /* linear-gradient(to right, rgba(255, 255, 255, 0) calc(50% - 1px), var(--borders) calc(50%), rgba(255, 255, 255, 0) calc(50% + 1px)); */
+ }
+ .clock-dot{
+    width: 2%;
+    height: 2%;
+    background-color: transparent;
+    border: 1px black solid;
+    border-radius: 50%;
+    position: absolute;
+    left: 50%;
+    top:50%;
+
+    transform: translate(-50%, -50%);
+ }
+ .clock-arm-hour{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 25%;
+    background-color:black;
+    transform-origin: 50% 0%;
+    transform: translateX(-2.5px) rotate(-180deg);
+ }
+ .clock-arm-minute{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1px;
+    height: 33%;
+    background-color:#333333;
+    
+    transform: rotate(-180deg);
+    transform-origin: 50% 0%;
+ }
+ .clock-arm-second{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1px;
+    height: 33%;
+    background-color:red;
+    
+    transform: rotate(-180deg);
+    transform-origin: 50% 0%;
+ }
+
+</style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="container-clock">
+            <div class="clock-frame">
+                <div class="clock-dot"></div>
+                <div id="clock-arm-hour" class="clock-arm-hour"></div>
+                <div id="clock-arm-minute" class="clock-arm-minute"></div>
+                <div id="clock-arm-second" class="clock-arm-second"></div>
+            </div>
+        </div>
+    </div>
+<script>
+    const timeApiRequest={
+        synced: false,
+        //http://worldtimeapi.org/api/ip
+
+        //!!!!!!!!!!!!!!!!!!!!
+        //https://dev.to/ramonak/javascript-how-to-access-the-return-value-of-a-promise-object-1bck
+        setApiTime(){
+                return fetch('http://worldtimeapi.org/api/ip')
+                    .then ((res)=>{return res.json()})
+                        .then(
+                            (json)=>{
+                                return json.datetime
+                        });
+        },
+        parseApiTime(response, valueToReturn){
+            response=response.match(/(\d{2}):(\d{2}):(\d{2})/);
+            if(valueToReturn==='hours'){
+                if(response[1]>12){
+                    return response[1]-12
+                }
+                else{
+                    return response[1]
+                }
+            } else if (valueToReturn==='minutes'){
+                return response[2]
+            } else if (valueToReturn==='seconds'){
+                return response[3]
+            } else{
+                return response
+            };
+        }
+    };
+    const time={
+        timeNow:new Date(),
+        setLocalTime(){
+            this.timeNow = new Date();
+            this.setHour();
+            this.setMinute();
+            this.setSecond();
+        },
+        updateTime(){
+            let timeSinceStart=Date.now()-this.timeNow.getTime();
+            timeSinceStart=Math.round(timeSinceStart/=1000);  //we get elapsed time in seconds
+           
+            if(timeSinceStart>=3600){
+                let elapsedHours=Math.floor(timeSinceStart/3600);
+                if(this.hour+elapsedHours<=12) this.hour+=elapsedHours;
+                if(this.hour+elapsedHours>12) this.hour=this.hour+elapsedHours-12;
+                timeSinceStart=timeSinceStart-elapsedHours*3600;
+            }
+            if(timeSinceStart>=60){
+                let elapsedMinutes=Math.floor(timeSinceStart/60);
+                if(this.minute+elapsedMinutes<=60) this.minute+=elapsedMinutes;
+                if(this.minute+elapsedMinutes>60) {
+                    this.minute=this.minute+elapsedMinutes-60;
+                    time.hour=time.hour+Math.floor(elapsedMinutes%60);
+                }
+                timeSinceStart=timeSinceStart-elapsedMinutes*60;
+            }
+            let elapsedSeconds=Math.round(timeSinceStart);
+            if(this.second+elapsedSeconds<60){
+                this.second=this.second+elapsedSeconds;
+                // console.log(elapsedSeconds+ " tts "+`seconds ${time.second} minute ${time.minute}  math${this.second+elapsedSeconds-60}`);
+            }
+            else if(this.second+elapsedSeconds>=60){
+                this.second=this.second+elapsedSeconds-60;
+                time.minute=time.minute+Math.floor(elapsedSeconds%60);
+            }
+            this.timeNow = new Date();
+        },
+        hour:'',
+        setHour(){
+            if(this.timeNow.getHours()>12){
+                this.hour=this.timeNow.getHours()-12;
+            } else {
+                this.hour=this.timeNow.getHours();
+            };
+        },
+        minute:'',
+        setMinute(){
+            this.minute=this.timeNow.getMinutes();
+        },
+        second:'',
+        setSecond(){
+            this.second=time.timeNow.getSeconds();
+        }
+    };
+    
+    class Clock{
+        local=false;
+        synced=false;
+        parentId=".container-clock";
+        armHour=document.getElementById("clock-arm-hour");
+        // armHour=document.querySelector(this.parentId+' .clock-arm-hour');
+        armMinute=document.getElementById("clock-arm-minute");
+        armSecond=document.getElementById("clock-arm-second");
+        constructor(parentId=".container-clock", id="clock", local=false, height='75min', width='75min', showUi=false){
+
+        };
+
+        drawClock(){
+
+        };
+        moveArm(inputTime, whichArm){
+            let position=parseInt(inputTime),
+                degrees=0;
+            switch(whichArm){
+                case 'hour':
+                    degrees=180+(position*30);
+                    this.armHour.style.transform="translateX(-2.5px) rotate("+degrees+"deg)";
+                    break;
+                case 'minute':
+                    degrees=180+(position*6);
+                    this.armMinute.style.transform="rotate("+degrees+"deg)";
+                    break;
+                case 'second':
+                    degrees=180+(position*6);
+                    this.armSecond.style.transform="translateX(-2.5px) rotate("+degrees+"deg)";
+                    break;
+                default:
+                    position=inputTime[1];
+                    degrees=180+(position*30);
+                    this.armHour.style.transform="translateX(-2.5px) rotate("+degrees+"deg)";
+
+                    position=inputTime[2];
+                    degrees=180+(position*6);
+                    this.armMinute.style.transform="rotate("+degrees+"deg)";
+
+                    position=inputTime[3];
+                    degrees=180+(position*6);
+                    this.armSecond.style.transform="translateX(-2.5px) rotate("+degrees+"deg)";
+                    break;
+            }
+
+        };
+        /* old */
+        // moveArmHour(currHour){
+        //     let hour=parseInt(currHour);
+        //     let degrees=180+(currHour*30);
+        //     this.armHour.style.transform="translateX(-2.5px) rotate("+degrees+"deg)";
+        //     console.log(time.hour);
+        // };
+        // moveArmMinute(currMinute){
+        //     let minute=parseInt(currMinute);
+        //     let degrees=180+(currMinute*6);
+        //     this.armMinute.style.transform="rotate("+degrees+"deg)";
+        //     console.log(time.minute);
+        // };
+        // moveArmSecond(currSecond){
+        //     let second=parseInt(currSecond);
+        //     let degrees=180+(currSecond*6);
+        //     this.armSecond.style.transform="translateX(-2.5px) rotate("+degrees+"deg)";
+        //     console.log(time.second);
+        // };
+
+        // updateArms(){
+        //     this.moveArmHour(time.hour);
+        //     this.moveArmMinute(time.minute);
+        //     this.moveArmSecond(time.second);
+        //     console.log('updated clock face');
+        // };
+
+    };
+
+    var clockUpdateTimer,
+        clockUpdateCount=0;
+    function updateClock(whichClock, moveArms=true){
+        function apiTime(){
+            const apiResponse = timeApiRequest.setApiTime()
+                .then(
+                    (result)=>{
+                        // if(parse!=='synced'){ 
+                            time.hour=timeApiRequest.parseApiTime(result, 'hours')
+                            time.minute=timeApiRequest.parseApiTime(result, 'minutes')
+                            time.second=timeApiRequest.parseApiTime(result, 'seconds')
+                        // }
+                    })
+                .catch(()=>{
+                    time.setLocalTime();
+                })
+        };
+
+        if(moveArms===true){ 
+            clockUpdateTimer=setInterval(()=>{
+                    if (whichClock.synced===false ||clockUpdateCount>=30){
+                        clockUpdateCount=0;
+                        apiTime();
+                        whichClock.synced=true;
+                        
+                    }   
+                    time.updateTime(); 
+                    whichClock.moveArm.apply(whichClock,[[0, time.hour, time.minute, time.second]]);
+                    clockUpdateCount++;
+                    console.log(clockUpdateCount+" "+time.minute);
+            }, 1000);
+        }
+        else{
+            clearInterval(clockUpdateTimer);
+        }
+    };
+
+
+
+    //IIFE
+    (
+        ()=>{
+            var self=this;
+            const test= new Clock();
+            updateClock.apply(test, [test]);
+            
+        }
+    )();
+
+</script>
+
+</body>
+
+</html>
