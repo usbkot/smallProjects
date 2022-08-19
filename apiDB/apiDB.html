@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>API - IndexeDB - web workers</title>
+        <meta name="viewport" content="width=device-width, initial-cale=1.0">
+        <meta name="description" content="mockup login with mock api, db">
+        <meta name="author" content="Akit">
+
+        <style>
+            :root{
+                box-sizing: border-box;
+                padding: 0;
+                margin: 0;
+                font-family: monospace, sans-serif;
+            }
+            *{
+                box-sizing:inherit;
+            }
+
+            .shadow{
+                box-shadow: .25rem .25rem .3rem .25rem rgba(138, 138, 138, 0.8),
+                    inset .25rem .25rem .3rem .25rem rgb(243, 243, 243);
+            }
+            .shadow-inverted{
+                box-shadow:inset .25rem .25rem .3rem .25rem rgba(138, 138, 138, 0.8),
+                    inset .35rem .35rem .3rem .25rem rgb(243, 243, 243);
+            }
+            .active-component{
+                border-radius: .75rem;
+                padding: 0.75rem;
+            }
+            .active-background{
+                background-color: #e4e4e4;
+            }
+            .hidden{
+                display: none;
+            }
+
+
+/*special elements*/
+            body{
+                
+                background: repeating-linear-gradient(to left,rgba(220, 220, 220, .5), rgba(185, 185, 185, .5)1px, rgba(185, 185, 185, .5) 2px, rgba(211, 211, 211, .5) 3px, rgba(211, 211, 211, .5) 3px),
+                            repeating-linear-gradient(to top, rgba(199, 199, 199, .5), rgba(199, 199, 199, .5)1px, rgba(185, 185, 185, .5)2px, rgba(185, 185, 185, .5) 3px );
+                width: 99%;
+                height: 100vh;
+                display: grid;
+                justify-content: center;
+                align-content: center;
+            }
+
+            .container{
+                position: relative; 
+            }
+            [data-enable]{
+                cursor: pointer;
+            }
+            [data-enable]:hover{
+                text-decoration: underline;
+            }
+
+
+
+            /*placeholder for css animation*/
+            /* .form-login:active{
+                position: fixed;
+                top: 0vh;
+                left:0vw;
+            }
+            .form-register{
+                display: none;
+            }
+            .form-login:active~.form-register{
+                display:inline-block;
+                
+            } */
+
+        </style>
+
+    </head>
+    <body>
+        <div class="container shadow active-background active-component">
+            <div class="form">
+                <div class="form-login">
+                    <h2 data-enable="0">Log in</h2> / <h2  data-enable="1">Register</h2>
+                    <form id="form-login-form">
+                        <input type="text" name="email" class="shadow-inverted active-background active-component">
+                        <input type="text" name="password" class="shadow-inverted active-background active-component">
+                        <input data-type="login" type="submit" value="Sign in" class="shadow active-background active-component">
+                    </form>
+                </div>
+                <div class="form-register hidden">
+                    <h2 data-enable="1">Register</h2> / <h2 data-enable="0">Log in</h2>
+                    <form id="form-register-form">
+                        <input type="text" name="email" class="shadow-inverted active-background active-component">
+                        <input type="text" name="password" class="shadow-inverted active-background active-component">
+                        <input data-type="register" type="submit" value="Register" class="shadow active-background active-component">
+                    </form>
+                </div>
+            </div>
+            <div class="panel hidden">
+                <!-- data goes here-->
+                
+            </div>
+        </div>
+        <script>
+            async function postFetch(which,data){
+                let path, email, password;
+                try{
+                    switch(which){
+                        case 'login':
+                            path="/api/login";
+                            break;
+                        case 'register':
+                            path="/api/register";
+                            break;
+                    };
+                                console.log(`which:${which} path:${path}, data:`,data);
+                    let promise=await fetch(`https://reqres.in${path}`,{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify(data)
+                    });
+                    let response = await promise;
+                    if (response.ok) return response.json();
+                    return response.status;
+                } catch(err){
+                    console.log(`error msg: ${err}`);
+                }
+            } //postFetch end
+
+            document.querySelectorAll('[type=submit]').forEach( (button)=>{ 
+                button.addEventListener('click', (e)=>{
+                    e.preventDefault();
+                    let which, data;
+                    if(e.target.dataset['type']==='login'){
+                        which='login';
+                        data={
+                            "email": "eve.holt@reqres.in",
+                            "password": "cityslicka"
+                        };
+                    } else{
+                        which='register'
+                        data={
+                            "email": "eve.holt@reqres.in",
+                            "password": "pistol"
+                        };
+                    };
+                    
+                    postFetch(which, data).then((value)=>{
+                        if(value.id>0) console.log(value)
+                        else login(value.token);
+                    }); 
+                });
+
+            });
+
+            document.querySelectorAll('[data-enable]').forEach( (target)=>{
+                target.addEventListener('click', (e)=>{
+                    userState(parseInt(e.target.dataset['enable']));
+                });
+            });
+
+            function userState(uiState){
+                    switch(uiState){
+                        case 0:
+                            //login
+                            document.querySelector('.form-login').classList.remove('hidden');
+                            document.querySelector('.form-register').classList.add('hidden');
+                            break;
+                        case 1:
+                            //register
+                            document.querySelector('.form-login').classList.add('hidden');
+                            document.querySelector('.form-register').classList.remove('hidden');
+                            break;
+                        case 2:
+                            //panel
+                            document.querySelector('.form-login').classList.add('hidden');
+                            document.querySelector('.form-register').classList.add('hidden');
+                            document.querySelector('.panel').classList.remove('hidden');
+                            break;
+                        case 3:
+                            //logout
+                            document.querySelector('.panel').classList.toggle('hidden');
+                            document.querySelector('.form-login').classList.toggle('hidden');
+                            break;
+                        default:
+                            userState(0);
+                        break;
+                    }
+            };
+
+            function login(token){ //considering this is using a test api the login function is a placeholder too
+                if(token){
+                    userState(2);
+                    document.querySelector('.panel').innerHTML="<h2>Just us trees here...</h2> tbc"; 
+                    //set-up token-cookie
+                    //to-do create a panel 
+                    //create webworker that downloads various data
+                    //create a database
+                    //photos & data  ->  https://jsonplaceholder.typicode.com/photo
+                }
+            } 
+
+        </script>
+    </body>
+</html>
