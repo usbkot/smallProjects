@@ -10,11 +10,11 @@
     box-sizing: border-box;
     padding: 0;
     margin: 0;
-    --borders: black;
-    --dial: lightgreen;
-    --hour-hand: black;
-    --minute-arm: black;
-    --seconds-arm: red;
+    --clock-borders: black;
+    --clock-dial: rgb(208, 255, 0);
+    --clock-hand-hour: rgb(58, 36, 180);
+    --clock-hand-minute: rgb(0, 119, 255);
+    --clock-hand-second: red;
 }
 body{
     box-sizing: inherit;
@@ -28,69 +28,59 @@ body{
     place-items: center;
     background-color: cornflowerblue;
  }
- .container-clock{
+ .clock-container{ /*clock specific css starts here*/
+    width: 100%;
+    height: 100%;
     width: 75vmin;
     height: 75vmin;
     background: lightcoral;
     position: relative;
     resize: both;
-
  }
- .clock-frame{
+ .clock-dial{
     box-sizing: border-box;
-    background-color: lightgreen;
+    background-color: var(--clock-dial);
     border-radius: 50%;
-    border: var(--borders) 2px solid;
+    border: var(--clock-borders) 2px solid;
     height: 100%;
     width: 100%;
 
-    background: var(--dial) 
-                linear-gradient(to bottom, rgba(255, 255, 255, 0) calc(50% - 1px), var(--borders) calc(50%), rgba(255, 255, 255, 0) calc(50% + 1px));
-                /* linear-gradient(to right, rgba(255, 255, 255, 0) calc(50% - 1px), var(--borders) calc(50%), rgba(255, 255, 255, 0) calc(50% + 1px)); */
+    background: var(--clock-dial) 
+                linear-gradient(to bottom, rgba(255, 255, 255, 0) calc(50% - 1px), var(--clock-borders) calc(50%), rgba(255, 255, 255, 0) calc(50% + 1px))
+                linear-gradient(to right, rgba(255, 255, 255, 0) calc(50% - 1px), var(--clock-borders) calc(50%), rgba(255, 255, 255, 0) calc(50% + 1px));
  }
- .clock-dot{
-    width: 2%;
-    height: 2%;
+ .clock-dot{ /*center*/
+    width: 1px;
+    height: 1px;
     background-color: transparent;
     border: 1px black solid;
     border-radius: 50%;
-    position: absolute;
-    left: 50%;
-    top:50%;
-
     transform: translate(-50%, -50%);
  }
- .clock-arm-hour{
+ .clock-centered{
     position: absolute;
     top: 50%;
-    left: 50%;
-    width: 5px;
+    left:50%;    
+ }
+ [class^=clock-hand]{
+    translate: -50% -100%;
+    transform-origin: bottom;
+    /* border-radius: 15% 15% 0 0;  */
+ }
+ .clock-hand-hour{
+    width: 2%;
     height: 25%;
-    background-color:black;
-    transform-origin: 50% 0%;
-    transform: translateX(-2.5px) rotate(-180deg);
+    background-color:var(--clock-hand-hour);
  }
- .clock-arm-minute{
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 1px;
+ .clock-hand-minute{
+    width: 1%;
     height: 33%;
-    background-color:#333333;
-    
-    transform: rotate(-180deg);
-    transform-origin: 50% 0%;
+    background-color:var(--clock-hand-minute);
  }
- .clock-arm-second{
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 1px;
+ .clock-hand-second{
+    width: 1%;
     height: 33%;
-    background-color:red;
-    
-    transform: rotate(-180deg);
-    transform-origin: 50% 0%;
+    background-color:var(--clock-hand-second);
  }
 
 </style>
@@ -98,12 +88,12 @@ body{
 
 <body>
     <div class="container">
-        <div class="container-clock">
-            <div class="clock-frame">
-                <div class="clock-dot"></div>
-                <div id="clock-arm-hour" class="clock-arm-hour"></div>
-                <div id="clock-arm-minute" class="clock-arm-minute"></div>
-                <div id="clock-arm-second" class="clock-arm-second"></div>
+        <div class="clock-container">
+            <div class="clock-dial">
+                <div class="clock-dot clock-centered"></div>
+                <div id="clock-hand-hour" class="clock-hand-hour clock-centered"></div>
+                <div id="clock-hand-minute" class="clock-hand-minute clock-centered"></div>
+                <div id="clock-hand-second" class="clock-hand-second clock-centered"></div>
             </div>
         </div>
     </div>
@@ -199,12 +189,11 @@ body{
     class Clock{
         local=false;
         synced=false;
-        parentId=".container-clock";
-        armHour=document.getElementById("clock-arm-hour");
-        // armHour=document.querySelector(this.parentId+' .clock-arm-hour');
-        armMinute=document.getElementById("clock-arm-minute");
-        armSecond=document.getElementById("clock-arm-second");
-        constructor(parentId=".container-clock", id="clock", local=false, height='75min', width='75min', showUi=false){
+        parentId=".clock-container";
+        armHour=document.getElementById("clock-hand-hour");
+        armMinute=document.getElementById("clock-hand-minute");
+        armSecond=document.getElementById("clock-hand-second");
+        constructor(parentId=".clock-container", id="clock", local=false, height='75min', width='75min', showUi=false){
 
         };
 
@@ -217,59 +206,32 @@ body{
             switch(whichArm){
                 case 'hour':
                     degrees=180+(position*30);
-                    this.armHour.style.transform="translateX(-2.5px) rotate("+degrees+"deg)";
+                    this.armHour.style.rotate=degrees+"deg";
                     break;
                 case 'minute':
                     degrees=180+(position*6);
-                    this.armMinute.style.transform="rotate("+degrees+"deg)";
+                    this.armMinute.style.rotate=degrees+"deg";
                     break;
                 case 'second':
                     degrees=180+(position*6);
-                    this.armSecond.style.transform="translateX(-2.5px) rotate("+degrees+"deg)";
+                    this.armSecond.style.rotate=degrees+"deg";
                     break;
                 default:
                     position=inputTime[1];
                     degrees=180+(position*30);
-                    this.armHour.style.transform="translateX(-2.5px) rotate("+degrees+"deg)";
+                    this.armHour.style.rotate=degrees+"deg";
 
                     position=inputTime[2];
                     degrees=180+(position*6);
-                    this.armMinute.style.transform="rotate("+degrees+"deg)";
+                    this.armMinute.style.rotate=degrees+"deg";
 
                     position=inputTime[3];
                     degrees=180+(position*6);
-                    this.armSecond.style.transform="translateX(-2.5px) rotate("+degrees+"deg)";
+                    this.armSecond.style.rotate=degrees+"deg";
                     break;
             }
 
         };
-        /* old */
-        // moveArmHour(currHour){
-        //     let hour=parseInt(currHour);
-        //     let degrees=180+(currHour*30);
-        //     this.armHour.style.transform="translateX(-2.5px) rotate("+degrees+"deg)";
-        //     console.log(time.hour);
-        // };
-        // moveArmMinute(currMinute){
-        //     let minute=parseInt(currMinute);
-        //     let degrees=180+(currMinute*6);
-        //     this.armMinute.style.transform="rotate("+degrees+"deg)";
-        //     console.log(time.minute);
-        // };
-        // moveArmSecond(currSecond){
-        //     let second=parseInt(currSecond);
-        //     let degrees=180+(currSecond*6);
-        //     this.armSecond.style.transform="translateX(-2.5px) rotate("+degrees+"deg)";
-        //     console.log(time.second);
-        // };
-
-        // updateArms(){
-        //     this.moveArmHour(time.hour);
-        //     this.moveArmMinute(time.minute);
-        //     this.moveArmSecond(time.second);
-        //     console.log('updated clock face');
-        // };
-
     };
 
     var clockUpdateTimer,
