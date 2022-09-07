@@ -46,8 +46,8 @@ body{
     width: 100%;
 
     background: var(--clock-dial) 
-                linear-gradient(to bottom, rgba(255, 255, 255, 0) calc(50% - 1px), var(--clock-borders) calc(50%), rgba(255, 255, 255, 0) calc(50% + 1px))
-                linear-gradient(to right, rgba(255, 255, 255, 0) calc(50% - 1px), var(--clock-borders) calc(50%), rgba(255, 255, 255, 0) calc(50% + 1px));
+                /* linear-gradient(to bottom, rgba(255, 255, 255, 0) calc(50% - 1px), var(--clock-borders) calc(50%), rgba(255, 255, 255, 0) calc(50% + 1px)) */
+                /* linear-gradient(to right, rgba(255, 255, 255, 0) calc(50% - 1px), var(--clock-borders) calc(50%), rgba(255, 255, 255, 0) calc(50% + 1px)); */
  }
  .clock-dot{ /*center*/
     width: 1px;
@@ -101,9 +101,6 @@ body{
     const timeApiRequest={
         synced: false,
         //http://worldtimeapi.org/api/ip
-
-        //!!!!!!!!!!!!!!!!!!!!
-        //https://dev.to/ramonak/javascript-how-to-access-the-return-value-of-a-promise-object-1bck
         setApiTime(){
                 return fetch('http://worldtimeapi.org/api/ip')
                     .then ((res)=>{return res.json()})
@@ -138,37 +135,23 @@ body{
             this.setMinute();
             this.setSecond();
         },
-        updateTime(){
-            let timeSinceStart=Date.now()-this.timeNow.getTime();
-            timeSinceStart=Math.round(timeSinceStart/=1000);  //we get elapsed time in seconds
-           
-            if(timeSinceStart>=3600){
-                let elapsedHours=Math.floor(timeSinceStart/3600);
-                if(this.hour+elapsedHours<=12) this.hour+=elapsedHours;
-                if(this.hour+elapsedHours>12) this.hour=this.hour+elapsedHours-12;
-                timeSinceStart=timeSinceStart-elapsedHours*3600;
-            }
-            if(timeSinceStart>=60){
-                let elapsedMinutes=Math.floor(timeSinceStart/60);
-                if(this.minute+elapsedMinutes<=60) this.minute+=elapsedMinutes;
-                if(this.minute+elapsedMinutes>60) {
-                    this.minute=this.minute+elapsedMinutes-60;
-                    time.hour=time.hour+Math.floor(elapsedMinutes%60);
-                }
-                timeSinceStart=timeSinceStart-elapsedMinutes*60;
-            }
-            let elapsedSeconds=Math.round(timeSinceStart);
-            if(this.second+elapsedSeconds<60){
-                this.second=this.second+elapsedSeconds;
-                // console.log(elapsedSeconds+ " tts "+`seconds ${time.second} minute ${time.minute}  math${this.second+elapsedSeconds-60}`);
-            }
-            else if(this.second+elapsedSeconds>=60){
-                this.second=this.second+elapsedSeconds-60;
-                time.minute=time.minute+Math.floor(elapsedSeconds%60);
-            }
+        updateTime(){ //based on internal 30 second loop to reduce internet api queries
+            let timeSinceStart=parseInt(Date.now()-this.timeNow.getTime()); //comparison of elapsed time in ms since the last loop
+            timeSinceStart=Math.round(timeSinceStart/=1000);  //timeSinceStart elapsed time ms to seconds
+            // console.log('timeSinceStart',timeSinceStart)
+
+            time.hour=parseInt(time.hour)+Math.floor(timeSinceStart/3600); //check for full hours - 3600 seconds
+            time.minute=parseInt(time.minute)+Math.floor(timeSinceStart/60); // check for minutes
+            time.second=parseInt(time.second)+Math.floor((Math.floor(timeSinceStart%3600))%60); // check what remains (seconds)
+            if (time.hour>12)time.hour-=12; 
+            if (time.minute>60){time.hour+=parseInt(time.minute/60); time.minute=parseInt(time.minute%60);};
+            if (time.second>60){time.minute+=parseInt(time.second/60); time.second=parseInt(time.second%60);};
+            
+            
+
             this.timeNow = new Date();
         },
-        hour:'',
+        hour:0,
         setHour(){
             if(this.timeNow.getHours()>12){
                 this.hour=this.timeNow.getHours()-12;
@@ -176,23 +159,24 @@ body{
                 this.hour=this.timeNow.getHours();
             };
         },
-        minute:'',
+        minute:0,
         setMinute(){
             this.minute=this.timeNow.getMinutes();
         },
-        second:'',
+        second:0,
         setSecond(){
             this.second=time.timeNow.getSeconds();
         }
     };
     
     class Clock{
-        local=false;
-        synced=false;
-        parentId=".clock-container";
+        local=false; //if local=true skip api
+        synced=false; //if synced but not local check api once a minute
+        parentId=".clock-container"; 
         armHour=document.getElementById("clock-hand-hour");
         armMinute=document.getElementById("clock-hand-minute");
         armSecond=document.getElementById("clock-hand-second");
+
         constructor(parentId=".clock-container", id="clock", local=false, height='75min', width='75min', showUi=false){
 
         };
@@ -200,33 +184,34 @@ body{
         drawClock(){
 
         };
+
         moveArm(inputTime, whichArm){
-            let position=parseInt(inputTime),
+            let position=inputTime,
                 degrees=0;
             switch(whichArm){
                 case 'hour':
-                    degrees=180+(position*30);
+                    degrees=180+(parseInt(position)*30);
                     this.armHour.style.rotate=degrees+"deg";
                     break;
                 case 'minute':
-                    degrees=180+(position*6);
+                    degrees=360+(parseInt(position)*6);
                     this.armMinute.style.rotate=degrees+"deg";
                     break;
                 case 'second':
-                    degrees=180+(position*6);
+                    degrees=360+(parseInt(position)*6);
                     this.armSecond.style.rotate=degrees+"deg";
                     break;
                 default:
-                    position=inputTime[1];
+                    position=parseInt(inputTime[1]);
                     degrees=180+(position*30);
                     this.armHour.style.rotate=degrees+"deg";
 
-                    position=inputTime[2];
-                    degrees=180+(position*6);
+                    position=parseInt(inputTime[2]);
+                    degrees=360+(position*6);
                     this.armMinute.style.rotate=degrees+"deg";
 
-                    position=inputTime[3];
-                    degrees=180+(position*6);
+                    position=parseInt(inputTime[3]);
+                    degrees=360+(position*6);
                     this.armSecond.style.rotate=degrees+"deg";
                     break;
             }
@@ -263,7 +248,7 @@ body{
                     time.updateTime(); 
                     whichClock.moveArm.apply(whichClock,[[0, time.hour, time.minute, time.second]]);
                     clockUpdateCount++;
-                    console.log(clockUpdateCount+" "+time.minute);
+                    console.log("clock update:",clockUpdateCount+" "+time.hour,time.minute, time.second);
             }, 1000);
         }
         else{
