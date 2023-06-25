@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 ewqeqweqw
 eqweqweqwe
 hbkmfg;lhkfgl;
 another test
 checkout test
+=======
+meowdy this is the new branch
+>>>>>>> 6233f0aa763eb3bf06d8bb1951ce3dd6da28ea3d
